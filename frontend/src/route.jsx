@@ -1,33 +1,62 @@
 import React, { useState, useContext, createContext } from 'react'
 import DashboardLayout from './DashboardLayout'
-import EmployeeDashboard from './pages/employee/Dashboard'
-import ManagerDashboard from './pages/manager/Dashboard'
-import AdminDashboard from './pages/admin/Dashboard'
+import Login from './pages/Login'
 
-// Simple AuthContext mock — replace with real auth later
 const AuthContext = createContext(null)
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(() => {
-    // Read role from localStorage for dev convenience
-    const role = typeof window !== 'undefined' ? localStorage.getItem('role') || 'Employee' : 'Employee'
-    return { name: 'Demo User', role }
+    if (typeof window !== 'undefined') {
+      const storedUser = localStorage.getItem('user')
+      return storedUser ? JSON.parse(storedUser) : null
+    }
+    return null
   })
+  const [loading, setLoading] = useState(false)
 
-  const loginAs = (role) => {
-    if (typeof window !== 'undefined') localStorage.setItem('role', role)
-    setUser((u) => ({ ...u, role }))
+  const loginWithBackend = async (email, password) => {
+    setLoading(true)
+    try {
+      const response = await fetch('http://localhost:5001/api/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, password }),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Login failed')
+      }
+
+      const data = await response.json()
+      const userData = data.user
+
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('user', JSON.stringify(userData))
+      }
+      setUser(userData)
+      return userData
+    } catch (error) {
+      console.error('Login error:', error)
+      throw error
+    } finally {
+      setLoading(false)
+    }
   }
 
   const logout = () => {
     if (typeof window !== 'undefined') {
-      localStorage.removeItem('role')
+      localStorage.removeItem('user')
     }
     setUser(null)
   }
 
   return (
-    <AuthContext.Provider value={{ user, loginAs, logout }}>{children}</AuthContext.Provider>
+    <AuthContext.Provider value={{ user, loginWithBackend, logout, loading }}>
+      {children}
+    </AuthContext.Provider>
   )
 }
 
@@ -50,6 +79,10 @@ function ProtectedRoute({ allowed = [], children }) {
 
 export default function AppRoutes() {
   const { user } = useAuth()
+
+  if (!user) {
+    return <Login />
+  }
 
   return (
     <ProtectedRoute allowed={["Employee", "Manager", "Admin"]}>

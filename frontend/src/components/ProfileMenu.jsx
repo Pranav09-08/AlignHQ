@@ -33,13 +33,13 @@ export default function ProfileMenu() {
       </button>
 
       {open && (
-        <div className="absolute right-0 mt-2 w-56 rounded-md border border-slate-200 bg-white shadow-lg z-20">
+        <div className="absolute right-0 mt-2 w-64 rounded-md border border-gray-200 bg-white shadow-lg z-20">
           <div className="p-3 text-sm">
             <div className="flex items-center gap-3">
               <div className="h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-slate-100 text-sm font-medium text-slate-700 flex">{user.name?.charAt(0) || 'U'}</div>
               <div>
                 <div className="font-medium text-slate-900">{user.name}</div>
-                <div className="text-xs text-slate-500">{user.role}</div>
+                <div className="text-xs text-slate-500">{user.email}</div>
               </div>
             </div>
           </div>

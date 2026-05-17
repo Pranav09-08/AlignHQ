@@ -1,12 +1,16 @@
 import express from 'express';
 import cors from 'cors';
 import { supabase } from './config/db.js';
+import authRoutes from './routes/auth/index.js';
 
 const app = express();
 const port = process.env.PORT || 5001;
 
 app.use(cors());
 app.use(express.json());
+
+// Auth routes
+app.use('/api/auth', authRoutes);
 
 app.get('/health', (_req, res) => {
   res.json({ ok: true, service: 'atomquest-backend' });
