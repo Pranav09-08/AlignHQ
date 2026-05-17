@@ -1,22 +1,5 @@
 import { supabase } from '../../config/db.js';
-
-function ensureSupabase() {
-  if (!supabase) throw new Error('Supabase client is not configured');
-}
-
-export async function getActiveCycle() {
-  ensureSupabase();
-  const { data, error } = await supabase
-    .from('cycles')
-    .select('*, cycle_rules(*)')
-    .eq('status', 'active')
-    .order('created_at', { ascending: false })
-    .limit(1)
-    .single();
-
-  if (error && error.code !== 'PGRST116') throw error;
-  return data;
-}
+import { ensureSupabase } from './helpers.js';
 
 export async function getTeamGoalSheets(managerId, cycleId) {
   ensureSupabase();

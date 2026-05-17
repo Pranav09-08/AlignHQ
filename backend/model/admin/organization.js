@@ -1,25 +1,5 @@
 import { supabase } from '../../config/db.js';
-
-function ensureSupabase() {
-  if (!supabase) {
-    throw new Error('Supabase client is not configured');
-  }
-}
-
-function isMissingTableError(error) {
-  return error?.code === 'PGRST205' || /could not find the table/i.test(error?.message || '');
-}
-
-async function safeSelect(queryPromise, fallbackData = []) {
-  const { data, error, count } = await queryPromise;
-  if (error) {
-    if (isMissingTableError(error)) {
-      return { data: fallbackData, error: null, count: count ?? fallbackData.length };
-    }
-    return { data, error, count };
-  }
-  return { data, error: null, count };
-}
+import { ensureSupabase, safeSelect } from './helpers.js';
 
 export async function getAdminBootstrapData() {
   ensureSupabase();
@@ -67,14 +47,6 @@ export async function getAdminBootstrapData() {
   };
 }
 
-export async function getAdminCyclesList() {
-  ensureSupabase();
-
-  const { data, error } = await safeSelect(supabase.from('cycles').select('*').order('created_at', { ascending: false }));
-  if (error) throw error;
-  return data || [];
-}
-
 export async function getAdminReportsData() {
   ensureSupabase();
 
@@ -106,61 +78,4 @@ export async function getAdminReportsData() {
       sharedGoals: sharedGoals.count || 0,
     },
   };
-}
-
-export async function createDepartment(payload) {
-  ensureSupabase();
-  return supabase.from('departments').insert(payload).select('*').single();
-}
-
-export async function createTeam(payload) {
-  ensureSupabase();
-  return supabase.from('teams').insert(payload).select('*, departments(id, name)').single();
-}
-
-export async function assignManagerToEmployee(employeeId, managerId) {
-  ensureSupabase();
-  return supabase.from('users').update({ manager_id: managerId || null }).eq('id', employeeId).select(
-    'id, name, email, role, manager_id, department_id, team_id, departments(id, name), teams!users_team_id_fkey(id, name)'
-  ).single();
-}
-
-export async function createCycle(payload) {
-  ensureSupabase();
-  return supabase.from('cycles').insert(payload).select('*').single();
-}
-
-export async function updateCycle(id, payload) {
-  ensureSupabase();
-  return supabase.from('cycles').update(payload).eq('id', id).select('*').single();
-}
-
-export async function upsertCycleRules(payload) {
-  ensureSupabase();
-  return supabase.from('cycle_rules').upsert(payload, { onConflict: 'cycle_id' }).select('*, cycles(id, name, phase, status)').single();
-}
-
-export async function createKpiTemplate(payload) {
-  ensureSupabase();
-  return supabase.from('kpi_templates').insert(payload).select('*, departments(id, name), teams(id, name), cycles(id, name, phase)').single();
-}
-
-export async function createUser(payload) {
-  ensureSupabase();
-  return supabase.from('users').insert(payload).select('id, name, email, role, manager_id, department_id, team_id').single();
-}
-
-export async function updateDepartment(id, payload) {
-  ensureSupabase();
-  return supabase.from('departments').update(payload).eq('id', id).select('*').single();
-}
-
-export async function updateTeam(id, payload) {
-  ensureSupabase();
-  return supabase.from('teams').update(payload).eq('id', id).select('*, departments(id, name)').single();
-}
-
-export async function updateUser(id, payload) {
-  ensureSupabase();
-  return supabase.from('users').update(payload).eq('id', id).select('id, name, email, role, manager_id, department_id, team_id').single();
 }

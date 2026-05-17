@@ -1,100 +1,137 @@
-import React, { useState, useEffect } from 'react'
+import React, { useEffect, useState } from 'react'
 import { useAuth } from '../../route'
-import { getPendingApprovals, getManagerTeamGoals } from '../../lib/api'
+import { getManagerApprovals } from '../../lib/api'
+
+const statusColors = {
+  draft: 'bg-gray-100 text-gray-600',
+  submitted: 'bg-amber-50 text-amber-700',
+  approved: 'bg-emerald-50 text-emerald-700',
+  rejected: 'bg-red-50 text-red-700',
+}
 
 export default function ManagerDashboard() {
   const { user } = useAuth()
-  const [approvals, setApprovals] = useState([])
-  const [teamGoals, setTeamGoals] = useState([])
+  const [cycle, setCycle] = useState(null)
+  const [sheets, setSheets] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
   useEffect(() => {
-    async function fetchApprovals() {
+    async function load() {
+      if (!user?.id) return
       try {
-        if (!user?.id) return
-        const data = await getPendingApprovals(user.id)
-        setApprovals(data.approvals || [])
+        const data = await getManagerApprovals(user.id)
+        if (typeof data !== 'string') {
+          setCycle(data.cycle || null)
+          setSheets(data.sheets || [])
+        }
       } catch (err) {
-        setError(err.message)
-        console.error('Error fetching pending approvals:', err)
+        setError(err.message || 'Failed to load dashboard data')
+        console.error('Manager dashboard error:', err)
       } finally {
         setLoading(false)
       }
     }
-
-    fetchApprovals()
+    load()
   }, [user?.id])
 
-  useEffect(() => {
-    async function fetchTeamGoals() {
-      try {
-        if (!user?.id) return
-        const data = await getManagerTeamGoals(user.id)
-        if (typeof data === 'string') return
-        setTeamGoals(data.goals || [])
-      } catch (e) {
-        // ignore
-      }
-    }
-    fetchTeamGoals()
-  }, [user?.id])
+  const pending = sheets.filter(s => s.status === 'submitted')
+  const approved = sheets.filter(s => s.status === 'approved')
+  const totalGoals = sheets.reduce((sum, s) => sum + (s.goals?.length || 0), 0)
 
   return (
-    <div>
-      <div className="mb-6">
-        <h2 className="text-2xl font-bold">Welcome, {user?.name}</h2>
-        <p className="mt-1 text-sm text-slate-600">Department Manager</p>
+    <div className="space-y-6">
+      <div>
+        <h2 className="text-2xl font-bold text-gray-900">Welcome back, {user?.name}</h2>
+        <p className="mt-1 text-sm text-gray-600">
+          Manager Dashboard — here's your team's performance overview.
+        </p>
       </div>
 
-      <div className="space-y-6">
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <div className="bg-white rounded-lg p-4 shadow-sm">
-            <div className="text-sm text-gray-500">Pending Approvals</div>
-            <div className="text-2xl font-semibold mt-1">{approvals.length}</div>
-            <div className="text-xs text-gray-400 mt-2">Awaiting your review</div>
-          </div>
-          <div className="bg-white rounded-lg p-4 shadow-sm">
-            <div className="text-sm text-gray-500">Team Goals</div>
-            <div className="text-2xl font-semibold mt-1">{teamGoals.length}</div>
-            <div className="text-xs text-gray-400 mt-2">Active goals across team</div>
-          </div>
-          <div className="bg-white rounded-lg p-4 shadow-sm">
-            <div className="text-sm text-gray-500">Avg Team Progress</div>
-            <div className="text-2xl font-semibold mt-1">{teamGoals.length > 0 ? `${Math.round((teamGoals.reduce((s, g) => s + (g.progress || 0), 0) / teamGoals.length) * 100)}%` : '0%'}</div>
-            <div className="text-xs text-gray-400 mt-2">Approximate</div>
-          </div>
+      {cycle && (
+        <div className="rounded-lg border border-blue-100 bg-blue-50 px-4 py-3 flex items-center gap-3">
+          <div className="text-xs text-blue-500 font-medium uppercase tracking-wide">Active Cycle</div>
+          <div className="font-semibold text-blue-900">{cycle.name}</div>
+          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase bg-blue-100 text-blue-700">{cycle.phase}</span>
+        </div>
+      )}
+
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-4">
+          <div className="text-sm text-gray-500">Team Members</div>
+          <div className="text-3xl font-bold mt-1 text-gray-900">{sheets.length}</div>
+          <div className="text-xs text-gray-400 mt-1">with goal sheets</div>
+        </div>
+        <div className="bg-white rounded-xl border border-amber-100 shadow-sm p-4">
+          <div className="text-sm text-amber-600">Pending Review</div>
+          <div className="text-3xl font-bold mt-1 text-amber-700">{pending.length}</div>
+          <div className="text-xs text-gray-400 mt-1">awaiting your action</div>
+        </div>
+        <div className="bg-white rounded-xl border border-emerald-100 shadow-sm p-4">
+          <div className="text-sm text-emerald-600">Approved</div>
+          <div className="text-3xl font-bold mt-1 text-emerald-700">{approved.length}</div>
+          <div className="text-xs text-gray-400 mt-1">goal sheets locked</div>
+        </div>
+        <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-4">
+          <div className="text-sm text-gray-500">Total Goals</div>
+          <div className="text-3xl font-bold mt-1 text-gray-900">{totalGoals}</div>
+          <div className="text-xs text-gray-400 mt-1">across all sheets</div>
+        </div>
+      </div>
+
+      {error && (
+        <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>
+      )}
+
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+        <div className="px-5 py-4 border-b border-gray-50">
+          <h3 className="text-base font-semibold text-gray-900">Team Overview</h3>
+          <p className="text-sm text-gray-500 mt-0.5">All members' goal sheet statuses for the current cycle.</p>
         </div>
 
-        {error && (
-          <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-700">
-            {error}
-          </div>
-        )}
-
         {loading ? (
-          <div className="text-center py-8">Loading pending approvals...</div>
-        ) : approvals.length > 0 ? (
-          <div className="grid gap-4">
-            {approvals.map((approval) => (
-              <div key={approval.id} className="border rounded-lg p-4 hover:shadow-md transition">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <h4 className="font-semibold">{approval.employee_name}</h4>
-                    <p className="text-sm text-slate-600">{approval.employee_email}</p>
-                  </div>
-                  <span className="px-2 py-1 bg-yellow-100 text-yellow-800 text-xs rounded">Pending</span>
-                </div>
-                <p className="text-sm text-slate-600 mt-2">Submitted on: {new Date(approval.submitted_at).toLocaleDateString()}</p>
-              </div>
-            ))}
+          <div className="px-5 py-8 text-sm text-gray-500">Loading team data...</div>
+        ) : sheets.length === 0 ? (
+          <div className="px-5 py-8 text-center text-sm text-gray-400">
+            {cycle
+              ? 'No goal sheets submitted yet for this cycle.'
+              : 'No active cycle found. Ask your admin to create one.'}
           </div>
         ) : (
-          <div className="text-center py-8 text-slate-500">
-            No pending approvals. All goal sheets are up to date!
+          <div className="divide-y divide-gray-50">
+            {sheets.map(sheet => {
+              const employee = sheet.users || {}
+              const goals = sheet.goals || []
+              return (
+                <div key={sheet.id} className="px-5 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors">
+                  <div>
+                    <div className="font-medium text-gray-900">{employee.name || 'Unknown'}</div>
+                    <div className="text-xs text-gray-500 mt-0.5">
+                      {employee.email} · {goals.length} goal{goals.length !== 1 ? 's' : ''}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    {sheet.submitted_at && (
+                      <span className="text-xs text-gray-400">
+                        {new Date(sheet.submitted_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
+                      </span>
+                    )}
+                    <span className={`px-2 py-1 rounded-full text-[10px] font-bold uppercase tracking-wide ${statusColors[sheet.status] || 'bg-gray-100 text-gray-600'}`}>
+                      {sheet.status}
+                    </span>
+                  </div>
+                </div>
+              )
+            })}
           </div>
         )}
       </div>
+
+      {pending.length > 0 && (
+        <div className="rounded-lg border border-amber-100 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+          You have <span className="font-bold">{pending.length}</span> goal sheet{pending.length !== 1 ? 's' : ''} waiting for review. Go to <span className="font-semibold">Pending Approvals</span> to take action.
+        </div>
+      )}
     </div>
   )
 }

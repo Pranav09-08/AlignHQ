@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react'
 import {
   createKpiTemplate,
   getAdminBootstrap,
+  shareTeamKpiTemplate,
 } from '../../lib/api'
 
 const initialKpiForm = {
@@ -43,6 +44,7 @@ export default function AdminKpiTemplates() {
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isSharing, setIsSharing] = useState('')
 
   const [kpiForm, setKpiForm] = useState(initialKpiForm)
 
@@ -102,6 +104,19 @@ export default function AdminKpiTemplates() {
       setError(err.message)
     } finally {
       setIsSubmitting(false)
+    }
+  }
+
+  const handleShareTemplate = async (templateId) => {
+    setIsSharing(templateId)
+    try {
+      const response = await shareTeamKpiTemplate(templateId)
+      notify(`Shared KPI with team. Assigned: ${response.assigned}, skipped: ${response.skipped}`)
+      await refreshBootstrap()
+    } catch (err) {
+      setError(err.message || 'Failed to share KPI')
+    } finally {
+      setIsSharing('')
     }
   }
 
@@ -312,6 +327,18 @@ export default function AdminKpiTemplates() {
                   <span>{template.scope} · {template.uom_type}</span>
                   <span className={template.is_active ? 'text-green-600' : 'text-red-500'}>{template.is_active ? 'Active' : 'Inactive'}</span>
                 </div>
+                {template.scope === 'team' && template.is_shared && template.is_active ? (
+                  <div className="mt-3">
+                    <button
+                      type="button"
+                      onClick={() => handleShareTemplate(template.id)}
+                      disabled={isSharing === template.id}
+                      className="rounded-lg bg-emerald-600 px-3 py-2 text-xs font-medium text-white hover:bg-emerald-700 disabled:opacity-50"
+                    >
+                      {isSharing === template.id ? 'Sharing...' : 'Share to team'}
+                    </button>
+                  </div>
+                ) : null}
               </div>
             ))}
             {bootstrap.kpiTemplates.length === 0 ? <div className="text-sm text-gray-500">No KPI templates yet.</div> : null}

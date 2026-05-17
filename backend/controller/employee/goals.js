@@ -1,28 +1,7 @@
-import {
-  getActiveCycle,
-  getGoalSheet,
-  createGoalSheet,
-  createGoal,
-  updateGoal,
-  deleteGoal,
-  updateGoalSheetStatus,
-} from '../../model/employee/myGoals.js';
-
-export async function getMyGoals(req, res) {
-  try {
-    const { employeeId } = req.query;
-    if (!employeeId) return res.status(400).json({ error: 'Employee ID is required' });
-
-    const cycle = await getActiveCycle();
-    if (!cycle) return res.json({ success: true, cycle: null, sheet: null });
-
-    const sheet = await getGoalSheet(employeeId, cycle.id);
-    res.json({ success: true, cycle, sheet });
-  } catch (error) {
-    console.error('get my goals error:', error);
-    res.status(500).json({ error: 'Failed to load goals' });
-  }
-}
+import { getActiveCycle } from '../../model/employee/cycles.js';
+import { createGoal, deleteGoal, updateGoal } from '../../model/employee/goals.js';
+import { createGoalSheet, getGoalSheet } from '../../model/employee/goalSheets.js';
+import { getSharedGoalByParentGoalId, updateSharedGoalWeightage } from '../../model/employee/sharedGoals.js';
 
 export async function addGoal(req, res) {
   try {
@@ -45,10 +24,10 @@ export async function addGoal(req, res) {
       if (['submitted', 'approved'].includes(sheet.status)) {
         return res.status(400).json({ error: 'Cannot add goals to a submitted or approved sheet' });
       }
-      
+
       const rule = cycle.cycle_rules && cycle.cycle_rules[0];
       const maxGoals = rule ? rule.max_goals_per_sheet : 8;
-      
+
       if (sheet.goals && sheet.goals.length >= maxGoals) {
         return res.status(400).json({ error: `Maximum of ${maxGoals} goals allowed` });
       }
@@ -77,6 +56,11 @@ export async function editGoal(req, res) {
     const { goalId } = req.params;
     const { title, description, thrust_area, uom_type, target, unit, weightage } = req.body;
 
+    const sharedGoal = await getSharedGoalByParentGoalId(goalId);
+    if (sharedGoal) {
+      return res.status(400).json({ error: 'Shared goals cannot be edited' });
+    }
+
     const goal = await updateGoal(goalId, { title, description, thrust_area, uom_type, target, unit, weightage });
     res.json({ success: true, goal });
   } catch (error) {
@@ -88,6 +72,10 @@ export async function editGoal(req, res) {
 export async function removeGoal(req, res) {
   try {
     const { goalId } = req.params;
+    const sharedGoal = await getSharedGoalByParentGoalId(goalId);
+    if (sharedGoal) {
+      return res.status(400).json({ error: 'Shared goals cannot be deleted' });
+    }
     await deleteGoal(goalId);
     res.json({ success: true });
   } catch (error) {
@@ -96,13 +84,19 @@ export async function removeGoal(req, res) {
   }
 }
 
-export async function submitSheet(req, res) {
+export async function adjustSharedWeightage(req, res) {
   try {
-    const { sheetId } = req.params;
-    const sheet = await updateGoalSheetStatus(sheetId, { status: 'submitted', submitted_at: new Date().toISOString() });
-    res.json({ success: true, sheet });
+    const { sharedGoalId } = req.params;
+    const { weightage } = req.body;
+
+    if (weightage === undefined || Number(weightage) < 10) {
+      return res.status(400).json({ error: 'Minimum weightage is 10%' });
+    }
+
+    const sharedGoal = await updateSharedGoalWeightage(sharedGoalId, Number(weightage));
+    res.json({ success: true, sharedGoal });
   } catch (error) {
-    console.error('submit sheet error:', error);
-    res.status(500).json({ error: error.message || 'Failed to submit goals' });
+    console.error('adjust shared weightage error:', error);
+    res.status(500).json({ error: error.message || 'Failed to adjust weightage' });
   }
 }

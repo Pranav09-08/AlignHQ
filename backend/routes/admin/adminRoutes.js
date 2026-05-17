@@ -1,36 +1,20 @@
 import express from 'express';
-import {
-  addCycle,
-  addDepartment,
-  addKpiTemplate,
-  addTeam,
-  addUser,
-  getBootstrap,
-  listCycles,
-  listReports,
-  setCycleRules,
-  updateEmployeeManager,
-  editDepartment,
-  editTeam,
-  editUser,
-  editCycle,
-} from '../../controller/admin/org.js';
+import organizationRoutes from './organization.js';
+import departmentRoutes from './departments.js';
+import teamRoutes from './teams.js';
+import peopleRoutes from './people.js';
+import cycleRoutes from './cycles.js';
+import cycleRulesRoutes from './cycleRules.js';
+import kpiTemplateRoutes from './kpiTemplates.js';
 
 const router = express.Router();
 
-router.get('/bootstrap', getBootstrap);
-router.get('/cycles', listCycles);
-router.get('/reports', listReports);
-router.post('/departments', addDepartment);
-router.patch('/departments/:id', editDepartment);
-router.post('/teams', addTeam);
-router.patch('/teams/:id', editTeam);
-router.post('/users', addUser);
-router.patch('/users/:id', editUser);
-router.patch('/users/:employeeId/manager', updateEmployeeManager);
-router.post('/cycles', addCycle);
-router.patch('/cycles/:id', editCycle);
-router.post('/cycle-rules', setCycleRules);
-router.post('/kpi-templates', addKpiTemplate);
+router.use(organizationRoutes);
+router.use(departmentRoutes);
+router.use(teamRoutes);
+router.use(peopleRoutes);
+router.use(cycleRoutes);
+router.use(cycleRulesRoutes);
+router.use(kpiTemplateRoutes);
 
 export default router;

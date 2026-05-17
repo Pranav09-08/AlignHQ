@@ -1,12 +1,10 @@
 import express from 'express';
-import {
-  getTeamApprovals,
-  reviewSheet,
-} from '../../controller/manager/approvals.js';
+import approvalsRoutes from './approvals.js';
+import teamGoalsRoutes from './teamGoals.js';
 
 const router = express.Router();
 
-router.get('/approvals', getTeamApprovals);
-router.post('/approvals/:sheetId/review', reviewSheet);
+router.use(approvalsRoutes);
+router.use(teamGoalsRoutes);
 
 export default router;

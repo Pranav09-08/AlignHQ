@@ -1,8 +1,5 @@
-import {
-  getActiveCycle,
-  getTeamGoalSheets,
-  updateGoalSheetStatus
-} from '../../model/manager/approvals.js';
+import { getTeamGoalSheets, updateGoalSheetStatus } from '../../model/manager/approvals.js';
+import { getActiveCycle } from '../../model/manager/cycles.js';
 
 export async function getTeamApprovals(req, res) {
   try {

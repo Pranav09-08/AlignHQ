@@ -35,11 +35,70 @@ export async function apiCall(endpoint, options = {}) {
 }
 
 export async function getEmployeeGoals(userId) {
-  return apiCall(`/employee/goals?user_id=${userId}`);
+  const data = await apiCall(`/employee/my-goals?employeeId=${userId}`);
+  if (typeof data === 'string') return data;
+  return { ...data, goals: data.sheet?.goals || [], sharedGoals: data.sharedGoals || [] };
+}
+
+export async function reopenGoalSheet(sheetId) {
+  return apiCall(`/employee/sheets/${sheetId}/reopen`, {
+    method: 'POST',
+  });
 }
 
 export async function getEmployeeCheckins(userId) {
-  return apiCall(`/employee/checkins?user_id=${userId}`);
+  return apiCall(`/employee/checkins?employeeId=${userId}`);
+}
+
+export async function saveGoalCheckin(goalId, payload) {
+  return apiCall(`/employee/checkins/${goalId}`, {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function getManagerApprovals(managerId) {
+  return apiCall(`/manager/approvals?managerId=${managerId}`);
+}
+
+export async function reviewGoalSheet(sheetId, payload) {
+  return apiCall(`/manager/approvals/${sheetId}/review`, {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function adjustSharedGoalWeightage(sharedGoalId, weightage) {
+  return apiCall(`/employee/shared-goals/${sharedGoalId}/weightage`, {
+    method: 'PATCH',
+    body: JSON.stringify({ weightage }),
+  });
+}
+
+export async function createEmployeeGoal(payload) {
+  return apiCall('/employee/goals/add', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function updateEmployeeGoal(goalId, payload) {
+  return apiCall(`/employee/goals/${goalId}`, {
+    method: 'PUT',
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function deleteEmployeeGoal(goalId) {
+  return apiCall(`/employee/goals/${goalId}`, {
+    method: 'DELETE',
+  });
+}
+
+export async function submitGoalSheet(sheetId) {
+  return apiCall(`/employee/sheets/${sheetId}/submit`, {
+    method: 'POST',
+  });
 }
 
 export async function getManagerTeamGoals(managerId) {
@@ -136,5 +195,12 @@ export async function createKpiTemplate(payload) {
   return apiCall('/admin/kpi-templates', {
     method: 'POST',
     body: JSON.stringify(payload),
+  });
+}
+
+export async function shareTeamKpiTemplate(templateId, cycleId = null) {
+  return apiCall(`/admin/kpi-templates/${templateId}/share`, {
+    method: 'POST',
+    body: JSON.stringify(cycleId ? { cycle_id: cycleId } : {}),
   });
 }
