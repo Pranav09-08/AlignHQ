@@ -1,4 +1,4 @@
-const API_BASE = 'http://localhost:5001/api';
+const API_BASE = 'https://alignhq.onrender.com/api';
 
 export async function apiCall(endpoint, options = {}) {
   const url = `${API_BASE}${endpoint}`;
