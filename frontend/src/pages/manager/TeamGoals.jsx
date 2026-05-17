@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { useAuth } from '../../route'
-import { getManagerTeamGoals } from '../../lib/api'
+import { getManagerTeamGoals, saveTeamCheckinComment } from '../../lib/api'
 
 const statusColors = {
   active: 'bg-blue-50 text-blue-700',
@@ -8,6 +8,136 @@ const statusColors = {
   missed: 'bg-red-50 text-red-700',
   in_progress: 'bg-amber-50 text-amber-700',
 }
+function TeamGoalRow({ goal, cycle, managerId, onCommentSaved }) {
+  const [expanded, setExpanded] = useState(false)
+  const [comment, setComment] = useState('')
+  const [submitting, setSubmitting] = useState(false)
+
+  const achievement = goal.achievements?.[0]
+  const comments = goal.comments || []
+
+  const handleAddComment = async () => {
+    if (!comment.trim()) return
+    setSubmitting(true)
+    try {
+      await saveTeamCheckinComment(goal.id, {
+        managerId,
+        comment: comment.trim(),
+        cycleId: cycle.id,
+        sheetId: goal.goal_sheet_id
+      })
+      setComment('')
+      if (onCommentSaved) onCommentSaved()
+    } catch (err) {
+      alert(err.message || 'Failed to save comment')
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  return (
+    <div className="border-b border-gray-50 last:border-0">
+      <div
+        onClick={() => setExpanded(prev => !prev)}
+        className="px-5 py-4 hover:bg-gray-50 transition-colors cursor-pointer flex items-start justify-between gap-4"
+      >
+        <div className="flex-1 min-w-0">
+          <div className="font-semibold text-gray-900 text-sm truncate">{goal.title}</div>
+          <div className="text-xs text-gray-500 mt-0.5">
+            {goal.employee?.name || 'Unknown'} · {goal.employee?.email}
+          </div>
+          {goal.description && (
+            <div className="text-xs text-gray-400 mt-1 truncate">{goal.description}</div>
+          )}
+          <div className="mt-1.5 flex flex-wrap gap-2 text-[10px] items-center font-medium">
+            {goal.thrust_area && (
+              <span className="bg-slate-50 text-slate-500 px-2 py-0.5 rounded font-bold uppercase tracking-wider">
+                {goal.thrust_area}
+              </span>
+            )}
+            <span className="bg-slate-50 text-slate-500 px-2 py-0.5 rounded">UOM: {goal.uom_type}</span>
+          </div>
+        </div>
+        <div className="flex items-center gap-3 shrink-0">
+          <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">{goal.weightage}%</span>
+          <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">
+            Target: {goal.target ?? '—'} {goal.unit || ''}
+          </span>
+          <span className={`px-2 py-1 rounded-full text-[10px] font-bold uppercase tracking-wide ${statusColors[goal.status] || 'bg-gray-100 text-gray-600'}`}>
+            {goal.status?.replace('_', ' ')}
+          </span>
+          <span className="text-gray-400 text-sm">{expanded ? '▲' : '▼'}</span>
+        </div>
+      </div>
+
+      {expanded && (
+        <div className="bg-slate-50 px-5 pb-5 pt-3 border-t border-gray-100 space-y-4">
+          {/* Achievement Details */}
+          <div className="bg-white rounded-xl border border-gray-100 p-4 shadow-sm grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div>
+              <div className="text-[10px] font-bold text-gray-400 uppercase">Actual Achievement</div>
+              <div className="text-sm font-semibold text-gray-800 mt-1">
+                {achievement?.actual_achievement ?? 'No update logged'} {achievement?.actual_achievement != null ? goal.unit || '' : ''}
+              </div>
+            </div>
+            <div>
+              <div className="text-[10px] font-bold text-gray-400 uppercase">Achievement Status</div>
+              <div className="text-sm font-semibold text-gray-800 mt-1 uppercase">
+                {achievement?.achievement_status?.replace('_', ' ') ?? 'NOT STARTED'}
+              </div>
+            </div>
+            <div>
+              <div className="text-[10px] font-bold text-gray-400 uppercase">Progress Score</div>
+              <div className="text-sm font-semibold text-blue-600 mt-1">
+                {achievement?.progress_score ?? 0}%
+              </div>
+            </div>
+          </div>
+
+          {/* Comments List */}
+          <div className="space-y-2">
+            <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wider">Check-in Discussion Feed</h4>
+            {comments.length === 0 ? (
+              <div className="text-xs text-gray-400 italic">No check-in comments entered yet.</div>
+            ) : (
+              <div className="bg-white rounded-xl border border-gray-100 p-3 space-y-2 shadow-sm">
+                {comments.map(c => (
+                  <div key={c.id} className="text-xs py-1 border-b border-gray-50 last:border-0 last:pb-0">
+                    <span className="font-semibold text-gray-700">Manager: </span>
+                    <span className="text-gray-600">{c.comment}</span>
+                    <span className="text-[9px] text-gray-400 block mt-0.5">{new Date(c.created_at).toLocaleString()}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Add Comment Input */}
+          <div className="flex gap-2 items-end">
+            <div className="flex-1">
+              <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Add Structured Comment</label>
+              <input
+                type="text"
+                className="w-full rounded-lg border border-gray-200 px-3 py-2 text-xs bg-white focus:outline-none focus:ring-1 focus:ring-blue-500"
+                placeholder="Enter feedback or check-in updates..."
+                value={comment}
+                onChange={e => setComment(e.target.value)}
+              />
+            </div>
+            <button
+              onClick={handleAddComment}
+              disabled={submitting || !comment.trim()}
+              className="rounded-lg bg-blue-600 text-white hover:bg-blue-700 font-semibold text-xs px-4 py-2 disabled:opacity-50 shrink-0 h-[34px]"
+            >
+              {submitting ? '...' : 'Add Feed'}
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
 
 export default function ManagerTeamGoals() {
   const { user } = useAuth()
@@ -18,22 +148,22 @@ export default function ManagerTeamGoals() {
   const [search, setSearch] = useState('')
   const [filterEmployee, setFilterEmployee] = useState('')
 
-  useEffect(() => {
-    async function load() {
-      if (!user?.id) return
-      try {
-        const data = await getManagerTeamGoals(user.id)
-        if (typeof data !== 'string') {
-          setCycle(data.cycle || null)
-          setGoals(data.goals || [])
-        }
-      } catch (err) {
-        setError(err.message || 'Failed to load team goals')
-      } finally {
-        setLoading(false)
+  const load = async () => {
+    if (!user?.id) return
+    try {
+      const data = await getManagerTeamGoals(user.id)
+      if (typeof data !== 'string') {
+        setCycle(data.cycle || null)
+        setGoals(data.goals || [])
       }
+    } catch (err) {
+      setError(err.message || 'Failed to load team goals')
     }
-    load()
+  }
+
+  useEffect(() => {
+    setLoading(true)
+    load().finally(() => setLoading(false))
   }, [user?.id])
 
   // Unique employees for filter dropdown
@@ -124,29 +254,13 @@ export default function ManagerTeamGoals() {
         ) : (
           <div className="divide-y divide-gray-50">
             {filtered.map(goal => (
-              <div key={goal.id} className="px-5 py-4 hover:bg-gray-50 transition-colors">
-                <div className="flex items-start justify-between gap-4">
-                  <div className="flex-1 min-w-0">
-                    <div className="font-medium text-gray-900 truncate">{goal.title}</div>
-                    <div className="text-xs text-gray-500 mt-0.5">{goal.employee?.name || 'Unknown'} · {goal.employee?.email}</div>
-                    {goal.description && (
-                      <div className="text-xs text-gray-400 mt-1 truncate">{goal.description}</div>
-                    )}
-                  </div>
-                  <div className="flex items-center gap-2 shrink-0">
-                    <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">{goal.weightage}%</span>
-                    <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">
-                      {goal.target != null ? `Target: ${goal.target} ${goal.unit || ''}` : '—'}
-                    </span>
-                    <span className={`px-2 py-1 rounded-full text-[10px] font-bold uppercase tracking-wide ${statusColors[goal.status] || 'bg-gray-100 text-gray-600'}`}>
-                      {goal.status?.replace('_', ' ')}
-                    </span>
-                  </div>
-                </div>
-                {goal.thrust_area && (
-                  <div className="mt-1 text-[10px] font-semibold uppercase tracking-wide text-gray-400">{goal.thrust_area}</div>
-                )}
-              </div>
+              <TeamGoalRow
+                key={goal.id}
+                goal={goal}
+                cycle={cycle}
+                managerId={user.id}
+                onCommentSaved={load}
+              />
             ))}
           </div>
         )}

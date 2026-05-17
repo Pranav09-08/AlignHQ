@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { useAuth } from '../../route'
-import { getManagerApprovals, reviewGoalSheet } from '../../lib/api'
+import { getManagerApprovals, reviewGoalSheet, updateEmployeeGoalByManager } from '../../lib/api'
 
 const statusColors = {
   draft: 'bg-gray-100 text-gray-600',
@@ -9,18 +9,93 @@ const statusColors = {
   rejected: 'bg-red-50 text-red-700',
 }
 
-function GoalRow({ goal }) {
+function GoalRow({ goal, isPending, onGoalUpdated }) {
+  const [editing, setEditing] = useState(false)
+  const [target, setTarget] = useState(String(goal.target ?? ''))
+  const [weightage, setWeightage] = useState(String(goal.weightage ?? ''))
+  const [saving, setSaving] = useState(false)
+
+  const handleSave = async () => {
+    setSaving(true)
+    try {
+      await updateEmployeeGoalByManager(goal.id, target === '' ? null : Number(target), Number(weightage))
+      setEditing(false)
+      if (onGoalUpdated) onGoalUpdated()
+    } catch (err) {
+      alert(err.message || 'Failed to update goal')
+    } finally {
+      setSaving(false)
+    }
+  }
+
   return (
-    <div className="flex items-start justify-between py-2 border-b border-gray-50 last:border-0">
-      <div>
-        <div className="text-sm font-medium text-gray-800">{goal.title}</div>
+    <div className="flex flex-col sm:flex-row sm:items-center justify-between py-3 border-b border-gray-50 last:border-0 gap-3">
+      <div className="flex-1">
+        <div className="text-sm font-semibold text-gray-800">{goal.title}</div>
         {goal.description && (
           <div className="text-xs text-gray-500 mt-0.5">{goal.description}</div>
         )}
+        <div className="mt-1 flex flex-wrap gap-2 text-[10px] items-center text-gray-400 font-medium">
+          <span className="bg-slate-50 px-2 py-0.5 rounded">UOM: {goal.uom_type}</span>
+          {goal.thrust_area && <span className="bg-slate-50 px-2 py-0.5 rounded">Thrust Area: {goal.thrust_area}</span>}
+        </div>
       </div>
-      <div className="flex gap-2 text-xs shrink-0 ml-4">
-        <span className="px-2 py-1 bg-slate-100 rounded">{goal.weightage}%</span>
-        <span className="px-2 py-1 bg-slate-100 rounded">{goal.uom_type}</span>
+
+      <div className="flex items-center gap-3 shrink-0">
+        {editing ? (
+          <div className="flex items-center gap-2">
+            <div>
+              <label className="block text-[10px] text-gray-400 font-bold uppercase">Target</label>
+              <input
+                type="number"
+                value={target}
+                onChange={e => setTarget(e.target.value)}
+                className="w-20 rounded border border-gray-200 px-2 py-1 text-xs"
+              />
+            </div>
+            <div>
+              <label className="block text-[10px] text-gray-400 font-bold uppercase">Weight (%)</label>
+              <input
+                type="number"
+                value={weightage}
+                onChange={e => setWeightage(e.target.value)}
+                className="w-16 rounded border border-gray-200 px-2 py-1 text-xs"
+              />
+            </div>
+            <div className="flex gap-1 mt-4">
+              <button
+                onClick={handleSave}
+                disabled={saving}
+                className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-[10px] px-2 py-1.5 rounded"
+              >
+                {saving ? '...' : 'Save'}
+              </button>
+              <button
+                onClick={() => { setEditing(false); setTarget(String(goal.target ?? '')); setWeightage(String(goal.weightage ?? '')) }}
+                className="border border-gray-200 hover:bg-gray-50 text-gray-600 text-[10px] px-2 py-1.5 rounded"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="flex items-center gap-2">
+            <span className="px-2 py-1 bg-slate-100 text-slate-700 rounded text-xs">
+              Target: {goal.target ?? '—'} {goal.unit || ''}
+            </span>
+            <span className="px-2 py-1 bg-slate-100 text-slate-700 rounded text-xs">
+              Weightage: {goal.weightage}%
+            </span>
+            {isPending && (
+              <button
+                onClick={() => setEditing(true)}
+                className="text-[10px] font-semibold text-blue-600 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 px-2 py-1.5 rounded"
+              >
+                Edit
+              </button>
+            )}
+          </div>
+        )}
       </div>
     </div>
   )
@@ -79,7 +154,14 @@ function SheetCard({ sheet, onReview }) {
       {expanded && (
         <div className="px-4 pb-4 border-t border-gray-50">
           <div className="mt-3 space-y-1">
-            {goals.length > 0 ? goals.map(g => <GoalRow key={g.id} goal={g} />) : (
+            {goals.length > 0 ? goals.map(g => (
+              <GoalRow
+                key={g.id}
+                goal={g}
+                isPending={isPending}
+                onGoalUpdated={() => onReview(sheet.id, { action: 'refresh' })}
+              />
+            )) : (
               <div className="text-sm text-gray-400 py-2">No goals on this sheet yet.</div>
             )}
           </div>
@@ -173,6 +255,10 @@ export default function ManagerApprovals() {
   const handleReview = async (sheetId, payload) => {
     try {
       setError('')
+      if (payload.action === 'refresh') {
+        await loadApprovals()
+        return
+      }
       await reviewGoalSheet(sheetId, { ...payload, reviewerId: user.id })
       await loadApprovals()
       notify(payload.action === 'approve' ? 'Goal sheet approved!' : 'Goal sheet returned with feedback.')

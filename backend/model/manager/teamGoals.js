@@ -17,7 +17,16 @@ export async function getTeamGoals(managerId, cycleId) {
 
   const { data: sheets, error: sheetError } = await supabase
     .from('goal_sheets')
-    .select('id, employee_id, users!goal_sheets_employee_id_fkey(id, name, email), goals(*)')
+    .select(`
+      id,
+      employee_id,
+      users!goal_sheets_employee_id_fkey(id, name, email),
+      goals(
+        *,
+        goal_achievements(*),
+        checkin_comments(*)
+      )
+    `)
     .in('employee_id', employeeIds)
     .eq('cycle_id', cycleId);
 
@@ -29,6 +38,8 @@ export async function getTeamGoals(managerId, cycleId) {
       sheet_id: sheet.id,
       employee_id: sheet.employee_id,
       employee: sheet.users || null,
+      achievements: goal.goal_achievements || [],
+      comments: goal.checkin_comments || [],
     }))
   );
 }

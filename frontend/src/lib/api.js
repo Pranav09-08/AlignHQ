@@ -68,6 +68,13 @@ export async function reviewGoalSheet(sheetId, payload) {
   });
 }
 
+export async function updateEmployeeGoalByManager(goalId, target, weightage) {
+  return apiCall(`/manager/goals/${goalId}`, {
+    method: 'PUT',
+    body: JSON.stringify({ target, weightage }),
+  });
+}
+
 export async function adjustSharedGoalWeightage(sharedGoalId, weightage) {
   return apiCall(`/employee/shared-goals/${sharedGoalId}/weightage`, {
     method: 'PATCH',
@@ -103,6 +110,13 @@ export async function submitGoalSheet(sheetId) {
 
 export async function getManagerTeamGoals(managerId) {
   return apiCall(`/manager/team-goals?manager_id=${managerId}`);
+}
+
+export async function saveTeamCheckinComment(goalId, payload) {
+  return apiCall(`/manager/team-goals/${goalId}/checkin-comment`, {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
 }
 
 export async function getPendingApprovals(managerId) {
@@ -203,4 +217,8 @@ export async function shareTeamKpiTemplate(templateId, cycleId = null) {
     method: 'POST',
     body: JSON.stringify(cycleId ? { cycle_id: cycleId } : {}),
   });
+}
+
+export async function getAdminEscalations() {
+  return apiCall('/admin/escalations');
 }

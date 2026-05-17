@@ -34,14 +34,14 @@ export default function Login() {
     },
     {
       role: 'Manager',
-      email: 'priya.sharma@alignhq.com',
-      password: 'priya123',
+      email: 'rajesh.kumar@alignhq.com',
+      password: 'rajesh123',
       icon: Briefcase,
     },
     {
       role: 'Employee',
-      email: 'vikram.singh@alignhq.com',
-      password: 'vikram123',
+      email: 'neha.patel@alignhq.com',
+      password: 'neha123',
       icon: Users,
     },
   ];
