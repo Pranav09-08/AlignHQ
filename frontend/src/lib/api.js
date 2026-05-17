@@ -57,3 +57,84 @@ export async function getAdminCycles() {
 export async function getAdminReports() {
   return apiCall('/admin/reports');
 }
+
+export async function getAdminBootstrap() {
+  return apiCall('/admin/bootstrap');
+}
+
+export async function createDepartment(payload) {
+  return apiCall('/admin/departments', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function updateDepartment(id, payload) {
+  return apiCall(`/admin/departments/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function createTeam(payload) {
+  return apiCall('/admin/teams', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function updateTeam(id, payload) {
+  return apiCall(`/admin/teams/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function createUser(payload) {
+  return apiCall('/admin/users', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function updateUser(id, payload) {
+  return apiCall(`/admin/users/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function assignEmployeeManager(employeeId, managerId) {
+  return apiCall(`/admin/users/${employeeId}/manager`, {
+    method: 'PATCH',
+    body: JSON.stringify({ manager_id: managerId }),
+  });
+}
+
+export async function createCycle(payload) {
+  return apiCall('/admin/cycles', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function updateCycle(id, payload) {
+  return apiCall(`/admin/cycles/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function setCycleRules(payload) {
+  return apiCall('/admin/cycle-rules', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function createKpiTemplate(payload) {
+  return apiCall('/admin/kpi-templates', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}

@@ -13,7 +13,14 @@ import ManagerTeamGoals from './pages/manager/TeamGoals'
 import ManagerApprovals from './pages/manager/Approvals'
 
 import AdminDashboard from './pages/admin/Dashboard'
-import AdminCycles from './pages/admin/Cycles'
+import AdminCreateDepartment from './pages/admin/CreateDepartment'
+import AdminCreateTeam from './pages/admin/CreateTeam'
+import AdminAssignManager from './pages/admin/AssignManager'
+import AdminManageEmployees from './pages/admin/ManageEmployees'
+import AdminManageManagers from './pages/admin/ManageManagers'
+import AdminCreateCycle from './pages/admin/CreateCycle'
+import AdminCycleRules from './pages/admin/CycleRules'
+import AdminKpiTemplates from './pages/admin/KpiTemplates'
 import AdminReports from './pages/admin/Reports'
 
 export default function DashboardLayout() {
@@ -38,7 +45,14 @@ export default function DashboardLayout() {
 
     if (role === 'Admin') {
       if (selected === 'dashboard') return <AdminDashboard />
-      if (selected === 'cycles') return <AdminCycles />
+      if (selected === 'create-dept') return <AdminCreateDepartment />
+      if (selected === 'create-team') return <AdminCreateTeam />
+      if (selected === 'assign-manager') return <AdminAssignManager />
+      if (selected === 'manage-employees') return <AdminManageEmployees />
+      if (selected === 'manage-managers') return <AdminManageManagers />
+      if (selected === 'create-cycle') return <AdminCreateCycle />
+      if (selected === 'cycle-rules') return <AdminCycleRules />
+      if (selected === 'kpi-templates') return <AdminKpiTemplates />
       if (selected === 'reports') return <AdminReports />
     }
 

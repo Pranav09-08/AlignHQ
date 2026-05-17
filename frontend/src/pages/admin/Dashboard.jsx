@@ -1,47 +1,87 @@
-import React, { useEffect, useState } from 'react'
-import { getAdminCycles, getAdminReports } from '../../lib/api'
+import React, { useEffect, useMemo, useState } from 'react'
+import { getAdminBootstrap } from '../../lib/api'
+
+function StatCard({ label, value, hint }) {
+  return (
+    <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
+      <div className="text-sm text-gray-500">{label}</div>
+      <div className="text-3xl font-semibold mt-2 text-gray-900">{value}</div>
+      <div className="text-xs text-gray-400 mt-2">{hint}</div>
+    </div>
+  )
+}
 
 export default function AdminDashboard() {
-  const [cycles, setCycles] = useState([])
-  const [reports, setReports] = useState([])
+  const [bootstrap, setBootstrap] = useState({
+    departments: [],
+    teams: [],
+    employees: [],
+    managers: [],
+    cycles: [],
+    cycleRules: [],
+    kpiTemplates: [],
+  })
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
+
+  const refreshBootstrap = async () => {
+    const data = await getAdminBootstrap()
+    if (typeof data === 'string') {
+      throw new Error('Unexpected server response')
+    }
+    setBootstrap({
+      departments: data.departments || [],
+      teams: data.teams || [],
+      employees: data.employees || [],
+      managers: data.managers || [],
+      cycles: data.cycles || [],
+      cycleRules: data.cycleRules || [],
+      kpiTemplates: data.kpiTemplates || [],
+    })
+  }
 
   useEffect(() => {
-    async function fetchData() {
+    async function load() {
       try {
-        const c = await getAdminCycles()
-        if (typeof c !== 'string') setCycles(c.cycles || [])
-      } catch (e) {}
-      try {
-        const r = await getAdminReports()
-        if (typeof r !== 'string') setReports(r.reports || [])
-      } catch (e) {}
+        await refreshBootstrap()
+      } catch (err) {
+        setError(err.message || 'Failed to load admin data')
+      } finally {
+        setLoading(false)
+      }
     }
-    fetchData()
+    load()
   }, [])
 
+  const counts = useMemo(
+    () => ({
+      departments: bootstrap.departments.length,
+      teams: bootstrap.teams.length,
+      employees: bootstrap.employees.length,
+      managers: bootstrap.managers.length,
+      cycles: bootstrap.cycles.length,
+      kpiTemplates: bootstrap.kpiTemplates.length,
+    }),
+    [bootstrap]
+  )
+
   return (
-    <div>
-      <h2 className="text-lg font-semibold">Admin Home</h2>
-      <p className="mt-2 text-sm text-slate-600">Manage cycles, view reports, and perform audit tasks.</p>
+    <div className="space-y-6">
+      <div>
+        <h2 className="text-2xl font-bold text-gray-900">Admin Overview</h2>
+        <p className="mt-1 text-sm text-gray-600">High-level statistics for the organization.</p>
+      </div>
 
-      <div className="mt-6 grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="bg-white rounded-lg p-4 shadow-sm">
-          <div className="text-sm text-gray-500">Active Cycles</div>
-          <div className="text-2xl font-semibold mt-1">{cycles.length}</div>
-          <div className="text-xs text-gray-400 mt-2">Open goal cycles</div>
-        </div>
+      {error ? <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div> : null}
+      {loading ? <div className="text-sm text-gray-500">Loading admin data...</div> : null}
 
-        <div className="bg-white rounded-lg p-4 shadow-sm">
-          <div className="text-sm text-gray-500">Reports</div>
-          <div className="text-2xl font-semibold mt-1">{reports.length}</div>
-          <div className="text-xs text-gray-400 mt-2">Generated analytics</div>
-        </div>
-
-        <div className="bg-white rounded-lg p-4 shadow-sm">
-          <div className="text-sm text-gray-500">Users</div>
-          <div className="text-2xl font-semibold mt-1">—</div>
-          <div className="text-xs text-gray-400 mt-2">User management coming soon</div>
-        </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+        <StatCard label="Departments" value={counts.departments} hint="Org units configured" />
+        <StatCard label="Teams" value={counts.teams} hint="Manager-led groups" />
+        <StatCard label="Employees" value={counts.employees} hint="Mapped staff members" />
+        <StatCard label="Managers" value={counts.managers} hint="Direct report owners" />
+        <StatCard label="Cycles" value={counts.cycles} hint="Active and upcoming" />
+        <StatCard label="KPI Templates" value={counts.kpiTemplates} hint="Shared KPI definitions" />
       </div>
     </div>
   )
