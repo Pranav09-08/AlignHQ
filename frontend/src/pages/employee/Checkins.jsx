@@ -110,6 +110,42 @@ function CheckinCard({ goal, achievement, cycleId, onSaved }) {
   )
 }
 
+function ProgressUpdate({ goal, onProgressSaved }) {
+  const [progress, setProgress] = useState('');
+  const [saving, setSaving] = useState(false);
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      await saveGoalCheckin(goal.id, { progress });
+      onProgressSaved();
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="flex items-center gap-3">
+      <input
+        type="text"
+        placeholder="Update Progress"
+        value={progress}
+        onChange={(e) => setProgress(e.target.value)}
+        className="border rounded px-2 py-1"
+      />
+      <button
+        onClick={handleSave}
+        disabled={saving}
+        className="bg-green-500 text-white px-3 py-1 rounded"
+      >
+        {saving ? 'Saving...' : 'Save'}
+      </button>
+    </div>
+  );
+}
+
 export default function EmployeeCheckins() {
   const { user } = useAuth()
   const [cycle, setCycle] = useState(null)
@@ -201,6 +237,10 @@ export default function EmployeeCheckins() {
           })
         )}
       </div>
+
+      {goals.map(goal => (
+        <ProgressUpdate key={goal.id} goal={goal} onProgressSaved={fetchCheckins} />
+      ))}
     </div>
   )
 }

@@ -43,3 +43,29 @@ export async function reopenSheet(req, res) {
     res.status(500).json({ error: error.message || 'Failed to reopen sheet' });
   }
 }
+
+export async function getSubmissionRate() {
+  ensureSupabase();
+
+  // Fetch total employees
+  const { data: employees, error: employeeError } = await supabase
+    .from('employees')
+    .select('id');
+
+  if (employeeError) throw employeeError;
+
+  // Fetch submitted goal sheets
+  const { data: submittedSheets, error: sheetError } = await supabase
+    .from('goal_sheets')
+    .select('id, employee_id')
+    .eq('status', 'submitted');
+
+  if (sheetError) throw sheetError;
+
+  // Calculate submission rate
+  const totalEmployees = employees.length;
+  const uniqueSubmittedEmployees = new Set(submittedSheets.map(sheet => sheet.employee_id)).size;
+  const submissionRate = (uniqueSubmittedEmployees / totalEmployees) * 100;
+
+  return { submissionRate, totalEmployees, uniqueSubmittedEmployees };
+}

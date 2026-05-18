@@ -223,6 +223,53 @@ function SheetCard({ sheet, onReview }) {
   )
 }
 
+function ApprovalActions({ sheetId, onActionCompleted }) {
+  const [action, setAction] = useState('approve');
+  const [rejectionReason, setRejectionReason] = useState('');
+  const [processing, setProcessing] = useState(false);
+
+  const handleAction = async () => {
+    setProcessing(true);
+    try {
+      await reviewGoalSheet(sheetId, action, rejectionReason);
+      onActionCompleted();
+    } catch (err) {
+      alert(err.message || 'Failed to process approval');
+    } finally {
+      setProcessing(false);
+    }
+  };
+
+  return (
+    <div className="flex items-center gap-3">
+      <select
+        value={action}
+        onChange={(e) => setAction(e.target.value)}
+        className="border rounded px-2 py-1"
+      >
+        <option value="approve">Approve</option>
+        <option value="reject">Reject</option>
+      </select>
+      {action === 'reject' && (
+        <input
+          type="text"
+          placeholder="Rejection Reason"
+          value={rejectionReason}
+          onChange={(e) => setRejectionReason(e.target.value)}
+          className="border rounded px-2 py-1"
+        />
+      )}
+      <button
+        onClick={handleAction}
+        disabled={processing}
+        className="bg-blue-500 text-white px-3 py-1 rounded"
+      >
+        {processing ? 'Processing...' : 'Submit'}
+      </button>
+    </div>
+  );
+}
+
 export default function ManagerApprovals() {
   const { user } = useAuth()
   const [cycle, setCycle] = useState(null)

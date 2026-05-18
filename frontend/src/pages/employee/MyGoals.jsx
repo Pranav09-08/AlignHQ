@@ -32,14 +32,11 @@ const uomOptions = [
 function SharedWeightageEditor({ sharedGoalId, currentWeightage, locked, onSaved }) {
   const [value, setValue] = useState(String(currentWeightage ?? 10))
   const [saving, setSaving] = useState(false)
-  const [saved, setSaved] = useState(false)
 
   const handleSave = async () => {
     setSaving(true)
     try {
       await adjustSharedGoalWeightage(sharedGoalId, Number(value))
-      setSaved(true)
-      setTimeout(() => setSaved(false), 2000)
       onSaved()
     } catch (err) {
       console.error(err)
@@ -49,28 +46,22 @@ function SharedWeightageEditor({ sharedGoalId, currentWeightage, locked, onSaved
   }
 
   return (
-    <span className="flex items-center gap-1.5">
-      <label className="text-gray-500">Weightage:</label>
+    <div className="flex items-center gap-3">
       <input
         type="number"
-        min="10"
-        max="100"
         value={value}
-        onChange={e => setValue(e.target.value)}
+        onChange={(e) => setValue(e.target.value)}
         disabled={locked}
-        className="w-16 rounded border border-gray-200 px-1.5 py-0.5 text-xs text-center"
+        className="border rounded px-2 py-1"
       />
-      <span className="text-gray-500">%</span>
-      {!locked && (
-        <button
-          onClick={handleSave}
-          disabled={saving}
-          className="text-[10px] font-semibold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 px-2 py-1 rounded disabled:opacity-50"
-        >
-          {saving ? '...' : saved ? '✓' : 'Save'}
-        </button>
-      )}
-    </span>
+      <button
+        onClick={handleSave}
+        disabled={saving || locked}
+        className="bg-blue-500 text-white px-3 py-1 rounded"
+      >
+        {saving ? 'Saving...' : 'Save'}
+      </button>
+    </div>
   )
 }
 
@@ -454,7 +445,7 @@ export default function EmployeeMyGoals() {
                         sharedGoalId={sharedRecord.id}
                         currentWeightage={sharedRecord.weightage_adjusted ?? goal.weightage}
                         locked={isLocked}
-                        onSaved={loadGoals}
+                        onSaved={fetchGoals}
                       />
                     ) : (
                       <span className="px-2 py-1 bg-slate-100 rounded">Weightage: {goal.weightage}%</span>
